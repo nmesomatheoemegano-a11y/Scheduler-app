@@ -1,4 +1,4 @@
-**Scheduler app**
+**Free recall scheduler app**
 
 This app was created to eliminate dependence on cued active recall spaced repetition programs, such as flashcards, and utilize free active recall speced repetition-based programs.
 
