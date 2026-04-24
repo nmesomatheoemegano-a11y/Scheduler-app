@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "StudyTask": {
+      "title": "StudyTask",
+      "description": "A single study task for the MCAT.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the task."
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Links recurring tasks together."
+        },
+        "originalTaskId": {
+          "type": "string",
+          "description": "Links Spaced Repetition reviews to the original chapter."
+        },
+        "reviewIteration": {
+          "type": "number",
+          "description": "0 for original, 1-5 for SR reviews."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the task."
+        },
+        "section": {
+          "type": "string",
+          "description": "The MCAT section the task belongs to."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the task is completed."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the task in YYYY-MM-DD format."
+        },
+        "duration": {
+          "type": "string",
+          "description": "The duration of the task."
+        },
+        "recurrence": {
+          "type": "string",
+          "description": "The recurrence type of the task."
+        },
+        "customInterval": {
+          "type": "number",
+          "description": "Days for custom recurrence."
+        },
+        "masteryRating": {
+          "type": "string",
+          "description": "The mastery rating of the task."
+        },
+        "isFSRSActive": {
+          "type": "boolean",
+          "description": "Flagged for intensive review."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns the task."
+        }
+      },
+      "required": ["id", "title", "description", "section", "completed", "date", "duration", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": {
+        "$ref": "#/entities/StudyTask"
+      },
+      "description": "Tasks belonging to a specific user."
+    }
+  }
+}

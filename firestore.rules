@@ -1,0 +1,120 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user owns the resource (for user-owned documents)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Validate required fields exist
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    // Validate string length
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+    
+    // Validate optional string (if present, must be string and within length)
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+    
+    // Validate optional number
+    function isValidOptionalNumber(field) {
+      return !(field in request.resource.data) || request.resource.data[field] is number;
+    }
+    
+    // Validate optional boolean
+    function isValidOptionalBoolean(field) {
+      return !(field in request.resource.data) || request.resource.data[field] is bool;
+    }
+    
+    // Validate that the document contains only the allowed fields
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+    
+    // Verify UID hasn't been tampered with on create
+    function uidUnchanged() {
+      return !('userId' in request.resource.data) ||
+        request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Ensure uid field is not modified on update
+    function uidNotModified() {
+      return !('userId' in request.resource.data) ||
+        request.resource.data.userId == resource.data.userId;
+    }
+    
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    
+    function isValidTask() {
+      let allowedFields = [
+        'id', 'groupId', 'originalTaskId', 'reviewIteration', 'title', 'description',
+        'section', 'completed', 'date', 'duration', 'recurrence', 'customInterval',
+        'masteryRating', 'isFSRSActive', 'userId'
+      ];
+      
+      let requiredFields = [
+        'id', 'title', 'description', 'section', 'completed', 'date', 'duration', 'userId'
+      ];
+      
+      let validSections = [
+        'Biology', 'Biochemistry', 'General Chemistry', 'Organic Chemistry',
+        'Physics', 'Behavioral Sciences', 'CARS', 'Practice Exam'
+      ];
+      
+      let validRecurrences = ['None', 'Daily', 'Weekly', 'Custom', 'SpacedRepetition'];
+      let validMasteryRatings = ['Again', 'Hard', 'Good', 'Easy'];
+      
+      return hasOnlyAllowedFields(allowedFields) &&
+             hasRequiredFields(requiredFields) &&
+             validStringLength('id', 1, 50) &&
+             validStringLength('title', 1, 200) &&
+             validStringLength('description', 0, 1000) &&
+             request.resource.data.section in validSections &&
+             request.resource.data.completed is bool &&
+             validStringLength('date', 10, 10) && // YYYY-MM-DD
+             validStringLength('duration', 1, 50) &&
+             request.resource.data.userId == request.auth.uid &&
+             isValidOptionalString('groupId', 1, 50) &&
+             isValidOptionalString('originalTaskId', 1, 50) &&
+             isValidOptionalNumber('reviewIteration') &&
+             (!( 'recurrence' in request.resource.data ) || request.resource.data.recurrence in validRecurrences) &&
+             isValidOptionalNumber('customInterval') &&
+             (!( 'masteryRating' in request.resource.data ) || request.resource.data.masteryRating in validMasteryRatings) &&
+             isValidOptionalBoolean('isFSRSActive');
+    }
+    
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    match /users/{userId}/tasks/{taskId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidTask() && uidUnchanged();
+      allow update: if isOwner(userId) && isValidTask() && uidNotModified();
+      allow delete: if isOwner(userId);
+    }
+  }
+}
